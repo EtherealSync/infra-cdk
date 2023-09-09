@@ -142,13 +142,9 @@ export class CdkEsyncInfraStack extends cdk.Stack {
       });
 
     //building the docker image and pushing to ecr to be used as task definition in fargate
-    const yt_uploader_node_image = new DockerImageAsset(
-      this,
-      'yt_uploader_node_image',
-      {
-        directory: join(__dirname, '..', 'node-image'),
-      }
-    );
+    const yt_uploader_image = new DockerImageAsset(this, 'yt_uploader_image', {
+      directory: join(__dirname, '..', 'yt-uploader-go-image'),
+    });
 
     // create a task definition with CloudWatch Logs
     const logging = new ecs.AwsLogDriver({
@@ -170,8 +166,9 @@ export class CdkEsyncInfraStack extends cdk.Stack {
     );
 
     //adding the container that handles uploads to the task definition
-    yt_uploader_task_definition.addContainer('yt_uploader', {
-      image: ecs.ContainerImage.fromDockerImageAsset(yt_uploader_node_image),
+    const upload_container_name = 'yt_uploader';
+    yt_uploader_task_definition.addContainer(upload_container_name, {
+      image: ecs.ContainerImage.fromDockerImageAsset(yt_uploader_image),
       logging,
       environment: {
         TABLE_NAME: app_table.tableName,
@@ -197,6 +194,7 @@ export class CdkEsyncInfraStack extends cdk.Stack {
         environment: {
           YT_UPLOADER_FARGATE_CLUSTER_NAME:
             yt_uploader_fargate_cluster.clusterName,
+          YT_UPLOADER_FARGATE_CONTAINER_NAME: upload_container_name,
           YT_UPLOADER_TASK_DEF_ARN:
             yt_uploader_task_definition.taskDefinitionArn,
           PUBLIC_SUBNET_ID_1: config.PUBLIC_SUBNET_ID_1,
