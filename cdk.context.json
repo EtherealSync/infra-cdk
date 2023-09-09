@@ -1,0 +1,39 @@
+{
+  "availability-zones:account=230530211488:region=ap-south-1": [
+    "ap-south-1a",
+    "ap-south-1b",
+    "ap-south-1c"
+  ],
+  "vpc-provider:account=230530211488:filter.isDefault=true:region=ap-south-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0e60dfa640a355d07",
+    "vpcCidrBlock": "172.31.0.0/16",
+    "ownerAccountId": "230530211488",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-001d0154341d87d72",
+            "cidr": "172.31.32.0/20",
+            "availabilityZone": "ap-south-1a",
+            "routeTableId": "rtb-03b1c10f30bd83642"
+          },
+          {
+            "subnetId": "subnet-0b4196ed43fb70d46",
+            "cidr": "172.31.0.0/20",
+            "availabilityZone": "ap-south-1b",
+            "routeTableId": "rtb-03b1c10f30bd83642"
+          },
+          {
+            "subnetId": "subnet-0d8c496af626fee55",
+            "cidr": "172.31.16.0/20",
+            "availabilityZone": "ap-south-1c",
+            "routeTableId": "rtb-03b1c10f30bd83642"
+          }
+        ]
+      }
+    ]
+  }
+}
