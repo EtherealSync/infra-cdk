@@ -113,7 +113,6 @@ func main() {
 
 	// Create a new AWS session with your credentials and region
 	// remove credentials in prod
-	// remove credentials in prod
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 		// Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
@@ -193,6 +192,8 @@ func main() {
 
 	expiryTime := time.Unix(tokenExpiryDate/1000, 0)
 
+	fmt.Println("access token expiry time: ", expiryTime)
+
 	config := oauth2.Config{
 		ClientID:     googleClientId,
 		ClientSecret: googleClientSecret,
@@ -200,22 +201,25 @@ func main() {
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
 	}
 
-	//Create a token source using the refresh token.
-	tokenSource := config.TokenSource(context.TODO(), &oauth2.Token{
-		RefreshToken: refreshToken,
-		AccessToken:  accessToken,
-		Expiry:       expiryTime,
-	})
+	// Check if the token has expired
+	if expiryTime.Before(time.Now()) {
+		// Create a token source using the refresh token.
+		tokenSource := config.TokenSource(context.TODO(), &oauth2.Token{
+			RefreshToken: refreshToken,
+			AccessToken:  accessToken,
+			Expiry:       expiryTime,
+		})
 
-	// Request an access token using the refresh token.
-	newToken, err := tokenSource.Token()
-	if err != nil {
-		log.Fatal("failed to refresh access token:", err)
-	}
+		// Request a new access token using the refresh token.
+		newToken, err := tokenSource.Token()
+		if err != nil {
+			log.Fatal("Failed to refresh access token:", err)
+		}
+		// Update your accessToken and expiryTime with the new token values.
+		accessToken = newToken.AccessToken
+		expiryTime = newToken.Expiry
 
-	// update db with new access token, issue date, and expiration date if old has expired
-	if newToken.AccessToken != accessToken {
-		log.Println("Updating tokens with newly generated tokens")
+		// Update the database with new access token, issue date, and expiration date
 		tokenExpiryDate := newToken.Expiry.Unix() * 1000
 		tokenIssuedAt := time.Now().UnixNano() / int64(time.Millisecond)
 
@@ -244,35 +248,25 @@ func main() {
 		}
 		_, err2 := dbClient.UpdateItem(updateInput)
 		if err2 != nil {
-			log.Fatal("Failed to update access token:", err)
+			log.Fatal("Failed to update access token:", err2)
 		} else {
 			log.Println("Updated access token, tokenExpiryDate, and tokenIssuedAt")
 		}
+	} else {
+		fmt.Println("Using old access token: ", "Expiry time: ", expiryTime, "Current time: ", time.Now())
 	}
 
 	// Create an HTTP client with the token
-	httpClient := config.Client(context.TODO(), newToken)
+	httpClient := config.Client(context.TODO(), &oauth2.Token{
+		RefreshToken: refreshToken,
+		AccessToken:  accessToken,
+		Expiry:       expiryTime,
+	})
 
 	yt, err := youtube.NewService(context.TODO(), option.WithHTTPClient(httpClient))
 	if err != nil {
 		log.Fatal("Error creating YouTubwe service client:", err)
 	}
-
-	// List and print all channels
-	// part := []string{"snippet", "contentDetails", "statistics"}
-	// channelsListCall := yt.Channels.List(part).Mine(true)
-	// response, err := channelsListCall.Do()
-	// if err != nil {
-	// 	log.Println("Error listing channels:", err)
-	// 	return
-	// }
-
-	// for _, channel := range response.Items {
-	// 	log.Println("Channel ID:", channel.Id)
-	// 	log.Println("Channel Title:", channel.Snippet.Title)
-	// 	log.Println("Channel Description:", channel.Snippet.Description)
-	// 	log.Println()
-	// }
 
 	// Defining the DynamoDB input parameters to get video data
 	videoInput := &dynamodb.GetItemInput{
@@ -334,7 +328,6 @@ func main() {
 	log.Printf("Video uploaded! Video ID: %s\n", res.Id)
 
 	// Mark the video status as uploaded
-	// Mark the video status as uploaded
 	updateInputMarkUploaded := &dynamodb.UpdateItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -377,4 +370,20 @@ func removeVideoPrefix(input string) string {
 // 	// RefreshToken: refreshToken,
 // 	TokenType: "Bearer",
 // 	// Expiry:       time.Now(),
+// }
+
+// List and print all channels
+// part := []string{"snippet", "contentDetails", "statistics"}
+// channelsListCall := yt.Channels.List(part).Mine(true)
+// response, err := channelsListCall.Do()
+// if err != nil {
+// 	log.Println("Error listing channels:", err)
+// 	return
+// }
+
+// for _, channel := range response.Items {
+// 	log.Println("Channel ID:", channel.Id)
+// 	log.Println("Channel Title:", channel.Snippet.Title)
+// 	log.Println("Channel Description:", channel.Snippet.Description)
+// 	log.Println()
 // }
