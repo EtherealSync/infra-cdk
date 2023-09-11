@@ -63,7 +63,6 @@ func main() {
 	}
 
 	// remove in prod
-
 	channelSK := os.Getenv("CHANNEL_SK")
 	projectSK := os.Getenv("PROJECT_SK")
 	orgSK := os.Getenv("ORG_SK")
@@ -203,6 +202,7 @@ func main() {
 
 	// Check if the token has expired
 	if expiryTime.Before(time.Now()) {
+		fmt.Println("token expired, creating new token ")
 		// Create a token source using the refresh token.
 		tokenSource := config.TokenSource(context.TODO(), &oauth2.Token{
 			RefreshToken: refreshToken,
@@ -244,7 +244,7 @@ func main() {
 					N: aws.String(strconv.FormatInt(tokenIssuedAt, 10)),
 				},
 			},
-			UpdateExpression: aws.String("SET accessToken = :at, tokenExpiryDate = :expiry, tokenIssuedAt = :issuedAt"),
+			UpdateExpression: aws.String("SET AccessToken = :at, TokenExpiryDate = :expiry, TokenIssuedAt = :issuedAt"),
 		}
 		_, err2 := dbClient.UpdateItem(updateInput)
 		if err2 != nil {
@@ -306,7 +306,7 @@ func main() {
 		Status: &youtube.VideoStatus{PrivacyStatus: "private"},
 	}
 
-	log.Println("Getting object from s3")
+	log.Println("Getting object from s3:", removeVideoPrefix(videoSK))
 	videoObjectResult, err := s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(removeVideoPrefix(videoSK)),
