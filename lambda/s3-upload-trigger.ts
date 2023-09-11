@@ -1,43 +1,23 @@
 import { Handler, S3Event, S3EventRecord } from 'aws-lambda';
 import { DynamoDB, S3 } from 'aws-sdk';
-export type Project = {
-  PK: string;
-  SK: string;
-  userId?: string;
-  name?: string;
-  createdAt: number;
-};
-
-export type Channel = {
-  SK: string;
-  name?: string;
-  subscriberCount?: number;
-  profileImageUrl?: string;
-  //below values will never be returned to frontend, only required in api route
-  issuedAt?: number;
-  scope?: string;
-  refreshToken?: string;
-  expiresIn?: string;
-  tokenType?: string;
-};
 
 export enum StatusType {
   AwaitingApproval = 'awaiting_approval',
-  Rejected = 'rejected',
+  RejectedByCreator = 'rejected_by_creator',
   UploadedToYT = 'uploaded_to_yt',
+  UploadingToYT = 'uploading_to_yt',
   Failed = 'failed',
 }
 
 export type Video = {
   PK: string;
   SK: string;
-  videoDescription: string;
-  videoTitle: string;
-  userId: string;
-  uploadedToPlatformAt: number;
-  uploadedToYoutubeAt?: number;
-  status: StatusType;
-  src?: string;
+  VideoDescription: string;
+  VideoTitle: string;
+  UserId: string;
+  UploadedToPlatformAt: number;
+  UploadedToYoutubeAt?: number;
+  Status: StatusType;
 };
 
 interface Metadata {
@@ -108,14 +88,14 @@ const createRecordInDynamoDB = async (
   const params = {
     TableName: process.env.TABLE_NAME as string,
     Item: {
-      PK: `ORG#${orgId || ''}#PROJECT#${projectId || ''}`,
+      PK: `ORG#${orgId}#PROJECT#${projectId}`,
       SK: `VIDEO#${videoKey}`,
-      uploadedToPlatformAt: new Date().getTime(),
-      status: status,
-      userId: metadata.userid || null,
-      videoTitle: metadata.videotitle || null,
-      videoDescription: metadata.videodescription || null,
-      thumbnailKey: metadata.thumbnailkey || null,
+      UploadedToPlatformAt: new Date().getTime(),
+      Status: status,
+      UserId: metadata.userid,
+      VideoTitle: metadata.videotitle,
+      VideoDescription: metadata.videodescription || '',
+      ThumbnailKey: metadata.thumbnailkey || '',
     } as Video,
   };
   await dynamoDB.put(params).promise();

@@ -171,6 +171,7 @@ export class CdkEsyncInfraStack extends cdk.Stack {
       image: ecs.ContainerImage.fromDockerImageAsset(yt_uploader_image),
       logging,
       environment: {
+        REGION: config.REGION,
         TABLE_NAME: app_table.tableName,
         YT_UPLOADS_S3_BUCKET_NAME: s3_yt_upload_bucket.bucketName,
         GOOGLE_CLIENT_ID: config.GOOGLE_CLIENT_ID,
@@ -208,7 +209,7 @@ export class CdkEsyncInfraStack extends cdk.Stack {
     //Add event source to lambda
     yt_upload_jobs_poller.addEventSource(yt_upload_event_source);
 
-    //permissions for poller for jobs
+    //permissions for poller lambda
     app_table.grantReadWriteData(yt_upload_jobs_poller);
     yt_uploader_task_definition.grantRun(yt_upload_jobs_poller);
 
@@ -217,7 +218,8 @@ export class CdkEsyncInfraStack extends cdk.Stack {
     s3_yt_upload_bucket.grantRead(yt_uploader_task_definition.taskRole);
   }
 }
-//Miscellaneous Code
+
+//discarded code ( might require in future)
 // Create VPC
 // const vpc = new cdk.aws_ec2.Vpc(this, 'esync_vpc', {
 //   maxAzs: 1,

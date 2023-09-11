@@ -1,21 +1,50 @@
 import { Handler } from 'aws-lambda';
 const AWS = require('aws-sdk');
 
+interface BodyType {
+  orgSK: string;
+  projectSK: string;
+  videoSK: string;
+  channelSK: string;
+}
+
+interface EventRecord {
+  messageId: string;
+  receiptHandle: string;
+  body: string;
+  attributes: {
+    ApproximateReceiveCount: string;
+    SentTimestamp: string;
+    SenderId: string;
+    ApproximateFirstReceiveTimestamp: string;
+  };
+  messageAttributes: Record<string, any>;
+  md5OfBody: string;
+  eventSource: string;
+  eventSourceARN: string;
+  awsRegion: string;
+}
+
+interface Event {
+  Records: EventRecord[];
+}
+
 const ecs = new AWS.ECS();
 
-export const handler: Handler = async (event, context) => {
-  console.log('EVENT: \n' + JSON.stringify(event, null, 2));
+export const handler: Handler = async (event: Event, context) => {
   try {
-    // Define your cluster name and task definition ARN
     const clusterName = process.env.YT_UPLOADER_FARGATE_CLUSTER_NAME as string;
     const taskDefinitionArn = process.env.YT_UPLOADER_TASK_DEF_ARN as string;
     const containerName = process.env
       .YT_UPLOADER_FARGATE_CONTAINER_NAME as string;
 
-    // Specify your custom environment variables
+    const parsedEnv: BodyType = JSON.parse(event.Records[0].body);
+
     const customEnvVars = {
-      CUSTOM_ENV_VAR_1: 'value1',
-      CUSTOM_ENV_VAR_2: 'value2',
+      ORG_SK: parsedEnv.orgSK,
+      PROJECT_SK: parsedEnv.projectSK,
+      VIDEO_SK: parsedEnv.videoSK,
+      CHANNEL_SK: parsedEnv.channelSK,
     };
 
     // Specify any task launch parameters
